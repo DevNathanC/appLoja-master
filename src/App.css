@@ -1,0 +1,93 @@
+.App {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f9f9f9;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgb(0 0 0 / 0.1);
+  color: #333;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 30px;
+  color: #222;
+}
+
+fieldset {
+  border: 2px solid #ccc;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 25px;
+  background-color: #fff;
+}
+
+legend {
+  padding: 0 10px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #007bff;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  font-weight: 500;
+  margin-bottom: 12px;
+  font-size: 0.95rem;
+  color: #444;
+}
+
+input[type="text"],
+input[type="date"],
+input[type="number"],
+input[type="tel"], /* Adicione esta linha */
+select,
+textarea {
+  margin-top: 6px;
+  padding: 8px 10px;
+  border: 1.5px solid #ccc;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+  resize: vertical;
+}
+
+input[type="text"]:focus,
+input[type="date"]:focus,
+input[type="number"]:focus,
+input[type="tel"]:focus, /* Adicione esta linha */
+select:focus,
+textarea:focus {
+  border-color: #007bff;
+  outline: none;
+  box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+}
+
+button {
+  background-color: #007bff;
+  color: white;
+  font-size: 1.1rem;
+  padding: 10px 25px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  font-weight: 600;
+}
+
+button:hover {
+  background-color: #0056b3;
+}
+
+ul {
+  padding-left: 20px;
+  list-style-type: disc;
+  color: #555;
+}
+
+ul li {
+  margin-bottom: 8px;
+  line-height: 1.3;
+}

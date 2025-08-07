@@ -1,0 +1,53 @@
+{
+  "name": "meu-app",
+  "version": "1.0.0",
+  "main": "main.js",
+  "private": true,
+  "homepage": "./",
+  "scripts": {
+    "start": "electron .",
+    "build": "react-scripts build",
+    "pack": "electron-builder --dir",
+    "dist": "npx electron-builder"
+  },
+  "build": {
+    "appId": "com.seunome.meuapp",
+    "productName": "Nome do Seu App",
+    "directories": {
+      "buildResources": "assets"
+    },
+    "files": [
+      "build/**/*",
+      "main.js"
+    ],
+    "extraResources": [],
+    "win": {
+      "target": "nsis"
+    }
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "electron": "^X.X.X",
+    "electron-builder": "^26.0.12",
+    "react-scripts": "^5.0.1"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "dependencies": {
+    "jspdf": "^3.0.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "web-vitals": "^2.1.4"
+  }
+}
