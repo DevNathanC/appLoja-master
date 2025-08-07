@@ -145,9 +145,10 @@ export default function App() {
       doc.setTextColor(0);
       pecas.forEach((peca, index) => {
         const servicoLabel = tipos.find(t => t.value === peca.servico)?.label || peca.servico;
+        // Todas as informações em uma linha só:
         const texto = `Peça ${index + 1} | Nome: ${peca.nome} | S: ${servicoLabel} | D: ${peca.descricao} | Q: ${peca.quantidade}`;
         doc.text(texto, caixaX + 2, y);
-        y += 7;
+        y += 7; // Espaço entre linhas
       });
       alturaServicos = y - caixaY + 2;
     }
