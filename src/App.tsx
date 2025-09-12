@@ -88,34 +88,56 @@ export default function App() {
 
   // Atualizando para gerar duas vias do PDF na mesma página com logo à esquerda e valor total à direita
 
-  const gerarPDF = () => {
-  const doc = new jsPDF();
-  const pdfWidth = doc.internal.pageSize.getWidth();
-  const pdfHeight = doc.internal.pageSize.getHeight();
 
-  const renderFicha = (offsetY: number) => {
+
+  // Função para estimar a altura de uma peça (em pontos)
+  function estimarAlturaPeca(peca: Peca): number {
+    // Cada campo ocupa cerca de 6-8 pontos, descrição pode ser maior
+    const linhasDescricao = Math.ceil((peca.descricao.length || 1) / 60); // 60 chars por linha
+    return 6 + 6 + 6 + (linhasDescricao * 6) + 6 + 8; // campos + espaço extra
+  }
+
+
+  // Função para dividir as peças em páginas, para uma via/cópia
+  function dividirEmPaginas(pecas: Peca[], alturaDisponivel: number) {
+    const paginas: Peca[][] = [];
+    let atual: Peca[] = [];
+    let alturaAtual = 0;
+    for (let i = 0; i < pecas.length; i++) {
+      const alturaPeca = estimarAlturaPeca(pecas[i]);
+      if (alturaAtual + alturaPeca > alturaDisponivel && atual.length > 0) {
+        paginas.push(atual);
+        atual = [];
+        alturaAtual = 0;
+      }
+      atual.push(pecas[i]);
+      alturaAtual += alturaPeca;
+    }
+    if (atual.length > 0) paginas.push(atual);
+    return paginas;
+  }
+
+  // Função para renderizar uma via (meia página)
+  function renderFicha(doc: jsPDF, pecasVia: Peca[], offsetY: number) {
     let y = offsetY;
+    const pdfWidth = doc.internal.pageSize.getWidth();
 
-    // Logo na extremidade esquerda
+    // Logo
     const imgProps = doc.getImageProperties(logoBase64);
     const logoWidth = 40;
     const logoHeight = (imgProps.height * logoWidth) / imgProps.width;
     const logoX = 10;
     doc.addImage(logoBase64, 'JPEG', logoX, y, logoWidth, logoHeight);
 
-    // Informações do Cliente ao lado da logo
+    // Info cliente
     const infoX = logoX + logoWidth + 5;
     const infoYStart = y;
-
     doc.setFontSize(12);
     doc.setTextColor(0);
     doc.text(`Nome: ${servico.cliente}`, infoX, infoYStart + 5);
-    doc.text(`Telefone: ${servico.telefone}`, infoX, infoYStart + 11); // Adicionado telefone
+    doc.text(`Telefone: ${servico.telefone}`, infoX, infoYStart + 11);
     doc.text(`Recebimento: ${formatarDataBR(servico.dataRecebimento)}`, infoX, infoYStart + 17);
     doc.text(`Entrega: ${formatarDataBR(servico.dataEntrega)}`, infoX, infoYStart + 23);
-
-    // Valor Total na extremidade direita
-    doc.setFontSize(12);
     doc.setFont('bold');
     doc.text('Valor Total: R$ ________', pdfWidth - 60, infoYStart + 5);
 
@@ -129,13 +151,12 @@ export default function App() {
     const caixaY = y;
     const caixaLargura = pdfWidth - 20;
     let alturaServicos = 0;
-
     doc.setFontSize(14);
     doc.setTextColor(40);
     doc.text('Serviços Solicitados', caixaX + 2, caixaY + 6);
     y = caixaY + 14;
 
-    if (pecas.length === 0) {
+    if (pecasVia.length === 0) {
       doc.setFontSize(12);
       doc.setTextColor(0);
       doc.text('Nenhuma peça adicionada.', caixaX + 2, y);
@@ -143,137 +164,56 @@ export default function App() {
     } else {
       doc.setFontSize(11);
       doc.setTextColor(0);
-      pecas.forEach((peca, index) => {
+      pecasVia.forEach((peca, index) => {
         const servicoLabel = tipos.find(t => t.value === peca.servico)?.label || peca.servico;
-        // Quebra as informações em várias linhas para evitar sobreposição
         doc.setFont('bold');
-        doc.text(`Peça ${index + 1}:`, caixaX + 2, y);
-        y += 6;
-        doc.setFont('normal');
-        doc.text(`Nome: ${peca.nome}`, caixaX + 8, y);
-        y += 6;
-        doc.text(`Serviço: ${servicoLabel}`, caixaX + 8, y);
-        y += 6;
-        doc.text(`Descrição: ${peca.descricao}`, caixaX + 8, y, { maxWidth: caixaLargura - 16 });
-        y += 6;
-        doc.text(`Quantidade: ${peca.quantidade}`, caixaX + 8, y);
-        y += 8; // Espaço extra entre peças
+        // Exibir todas as informações em uma linha só
+        const textoLinha = `Peça ${index + 1}: Nome: ${peca.nome} | Serviço: ${servicoLabel} | Descrição: ${peca.descricao} | Quantidade: ${peca.quantidade}`;
+        doc.text(textoLinha, caixaX + 2, y, { maxWidth: caixaLargura - 4 });
+        y += 10;
       });
       alturaServicos = y - caixaY + 2;
     }
-
     doc.setDrawColor(100);
     doc.setLineWidth(0.3);
     doc.roundedRect(caixaX, caixaY, caixaLargura, alturaServicos, 3, 3);
 
-    // Campo para assinatura do cliente
+    // Assinatura
     const assinaturaY = caixaY + alturaServicos + 20;
     doc.setFontSize(12);
     doc.setTextColor(80);
     doc.text('Assinatura do Cliente:', caixaX + 2, assinaturaY);
     doc.setLineWidth(0.5);
     doc.line(caixaX + 50, assinaturaY + 1, caixaX + 150, assinaturaY + 1);
-  };
+  }
 
-  // Gera as duas vias na mesma página
-  renderFicha(10); // Primeira via no topo
-  renderFicha(pdfHeight / 2 + 5); // Segunda via na metade inferior
-
-  // Linha separadora
-  doc.setLineWidth(0.2);
-  doc.setDrawColor(150);
-  doc.line(10, pdfHeight / 2, pdfWidth - 10, pdfHeight / 2);
-
-  doc.save(`Ficha_${servico.cliente || 'servico'}.pdf`);
-};
+  const gerarPDF = () => {
+    const doc = new jsPDF();
+    const pdfHeight = doc.internal.pageSize.getHeight();
+    const alturaDisponivel = pdfHeight - 60; // página inteira menos cabeçalho/margem
+    // Duas vias/cópias: para cada uma, imprime todas as peças, quebrando em páginas se necessário
+    for (let via = 0; via < 2; via++) {
+      const paginas = dividirEmPaginas(pecas, alturaDisponivel);
+      paginas.forEach((pecasPag, idx) => {
+        if (via > 0 || idx > 0) doc.addPage();
+        renderFicha(doc, pecasPag, 10);
+      });
+    }
+    doc.save(`Ficha_${servico.cliente || 'servico'}.pdf`);
+  }
 
 
   const imprimirPDF = () => {
     const doc = new jsPDF();
-    const pdfWidth = doc.internal.pageSize.getWidth();
     const pdfHeight = doc.internal.pageSize.getHeight();
-
-    const renderFicha = (offsetY: number) => {
-      let y = offsetY;
-
-      const imgProps = doc.getImageProperties(logoBase64);
-      const logoWidth = 40;
-      const logoHeight = (imgProps.height * logoWidth) / imgProps.width;
-      const logoX = 10;
-      doc.addImage(logoBase64, 'JPEG', logoX, y, logoWidth, logoHeight);
-
-      const infoX = logoX + logoWidth + 5;
-      const infoYStart = y;
-      doc.setFontSize(12);
-      doc.setTextColor(0);
-      doc.text(`Nome: ${servico.cliente}`, infoX, infoYStart + 5);
-      doc.text(`Telefone: ${servico.telefone}`, infoX, infoYStart + 11);
-      doc.text(`Recebimento: ${formatarDataBR(servico.dataRecebimento)}`, infoX, infoYStart + 17);
-      doc.text(`Entrega: ${formatarDataBR(servico.dataEntrega)}`, infoX, infoYStart + 23);
-      doc.setFont('bold');
-      doc.text('Valor Total: R$ ________', pdfWidth - 60, infoYStart + 5);
-
-      y += logoHeight + 10;
-      doc.setFontSize(18);
-      doc.text('Ficha de Serviços de Costura', pdfWidth / 2, y, { align: 'center' });
-      y += 10;
-
-      // Caixa dos serviços (igual ao gerarPDF)
-      const caixaX = 10;
-      const caixaY = y;
-      const caixaLargura = pdfWidth - 20;
-      let alturaServicos = 0;
-
-      doc.setFontSize(14);
-      doc.setTextColor(40);
-      doc.text('Serviços Solicitados', caixaX + 2, caixaY + 6);
-      y = caixaY + 14;
-
-      if (pecas.length === 0) {
-        doc.setFontSize(12);
-        doc.setTextColor(0);
-        doc.text('Nenhuma peça adicionada.', caixaX + 2, y);
-        alturaServicos = y - caixaY + 4;
-      } else {
-        doc.setFontSize(11);
-        doc.setTextColor(0);
-        pecas.forEach((peca, index) => {
-          const servicoLabel = tipos.find(t => t.value === peca.servico)?.label || peca.servico;
-          doc.setFont('bold');
-          doc.text(`Peça ${index + 1}:`, caixaX + 2, y);
-          y += 6;
-          doc.setFont('normal');
-          doc.text(`Nome: ${peca.nome}`, caixaX + 8, y);
-          y += 6;
-          doc.text(`Serviço: ${servicoLabel}`, caixaX + 8, y);
-          y += 6;
-          doc.text(`Descrição: ${peca.descricao}`, caixaX + 8, y, { maxWidth: caixaLargura - 16 });
-          y += 6;
-          doc.text(`Quantidade: ${peca.quantidade}`, caixaX + 8, y);
-          y += 8;
-        });
-        alturaServicos = y - caixaY + 2;
-      }
-      // Caixa visual (opcional)
-      doc.setDrawColor(100);
-      doc.setLineWidth(0.3);
-      doc.roundedRect(caixaX, caixaY, caixaLargura, alturaServicos, 3, 3);
-
-      // Campo para assinatura do cliente
-      const assinaturaY = caixaY + alturaServicos + 20;
-      doc.setFontSize(12);
-      doc.setTextColor(80);
-      doc.text('Assinatura do Cliente:', caixaX + 2, assinaturaY);
-      doc.setLineWidth(0.5);
-      doc.line(caixaX + 50, assinaturaY + 1, caixaX + 150, assinaturaY + 1);
-    };
-
-    renderFicha(10);
-    renderFicha(pdfHeight / 2 + 5);
-    doc.setLineWidth(0.2);
-    doc.setDrawColor(150);
-    doc.line(10, pdfHeight / 2, pdfWidth - 10, pdfHeight / 2);
-
+    const alturaDisponivel = pdfHeight - 60;
+    for (let via = 0; via < 2; via++) {
+      const paginas = dividirEmPaginas(pecas, alturaDisponivel);
+      paginas.forEach((pecasPag, idx) => {
+        if (via > 0 || idx > 0) doc.addPage();
+        renderFicha(doc, pecasPag, 10);
+      });
+    }
     // Imprimir: abre em uma nova aba com modo de impressão
     const blob = doc.output('blob');
     const url = URL.createObjectURL(blob);
