@@ -145,10 +145,19 @@ export default function App() {
       doc.setTextColor(0);
       pecas.forEach((peca, index) => {
         const servicoLabel = tipos.find(t => t.value === peca.servico)?.label || peca.servico;
-        // Todas as informações em uma linha só:
-        const texto = `Peça ${index + 1} | Nome: ${peca.nome} | S: ${servicoLabel} | D: ${peca.descricao} | Q: ${peca.quantidade}`;
-        doc.text(texto, caixaX + 2, y);
-        y += 7; // Espaço entre linhas
+        // Quebra as informações em várias linhas para evitar sobreposição
+        doc.setFont('bold');
+        doc.text(`Peça ${index + 1}:`, caixaX + 2, y);
+        y += 6;
+        doc.setFont('normal');
+        doc.text(`Nome: ${peca.nome}`, caixaX + 8, y);
+        y += 6;
+        doc.text(`Serviço: ${servicoLabel}`, caixaX + 8, y);
+        y += 6;
+        doc.text(`Descrição: ${peca.descricao}`, caixaX + 8, y, { maxWidth: caixaLargura - 16 });
+        y += 6;
+        doc.text(`Quantidade: ${peca.quantidade}`, caixaX + 8, y);
+        y += 8; // Espaço extra entre peças
       });
       alturaServicos = y - caixaY + 2;
     }
@@ -198,7 +207,7 @@ export default function App() {
       doc.setFontSize(12);
       doc.setTextColor(0);
       doc.text(`Nome: ${servico.cliente}`, infoX, infoYStart + 5);
-      doc.text(`Telefone: ${servico.telefone}`, infoX, infoYStart + 11); // Adicionado telefone
+      doc.text(`Telefone: ${servico.telefone}`, infoX, infoYStart + 11);
       doc.text(`Recebimento: ${formatarDataBR(servico.dataRecebimento)}`, infoX, infoYStart + 17);
       doc.text(`Entrega: ${formatarDataBR(servico.dataEntrega)}`, infoX, infoYStart + 23);
       doc.setFont('bold');
@@ -209,33 +218,54 @@ export default function App() {
       doc.text('Ficha de Serviços de Costura', pdfWidth / 2, y, { align: 'center' });
       y += 10;
 
+      // Caixa dos serviços (igual ao gerarPDF)
+      const caixaX = 10;
+      const caixaY = y;
+      const caixaLargura = pdfWidth - 20;
+      let alturaServicos = 0;
+
       doc.setFontSize(14);
       doc.setTextColor(40);
-      doc.text('Serviços Solicitados', 10, y);
-      doc.setLineWidth(0.5);
-      doc.line(10, y + 1, pdfWidth - 10, y + 1);
-      y += 8;
+      doc.text('Serviços Solicitados', caixaX + 2, caixaY + 6);
+      y = caixaY + 14;
 
       if (pecas.length === 0) {
         doc.setFontSize(12);
-        doc.text('Nenhuma peça adicionada.', 10, y);
+        doc.setTextColor(0);
+        doc.text('Nenhuma peça adicionada.', caixaX + 2, y);
+        alturaServicos = y - caixaY + 4;
       } else {
+        doc.setFontSize(11);
+        doc.setTextColor(0);
         pecas.forEach((peca, index) => {
-          doc.setFontSize(12);
-          doc.setTextColor(0);
+          const servicoLabel = tipos.find(t => t.value === peca.servico)?.label || peca.servico;
           doc.setFont('bold');
-          doc.text(`Peça ${index + 1}:`, 10, y);
+          doc.text(`Peça ${index + 1}:`, caixaX + 2, y);
           y += 6;
           doc.setFont('normal');
-          doc.text(`Nome: ${peca.nome}`, 14, y);
+          doc.text(`Nome: ${peca.nome}`, caixaX + 8, y);
           y += 6;
-          const servicoLabel = tipos.find(t => t.value === peca.servico)?.label || peca.servico;
-          doc.text(`S: ${servicoLabel}`, 14, y);
-          doc.text(`D: ${peca.descricao}`, 80, y);
-          doc.text(`Q: ${peca.quantidade}`, 160, y);
+          doc.text(`Serviço: ${servicoLabel}`, caixaX + 8, y);
+          y += 6;
+          doc.text(`Descrição: ${peca.descricao}`, caixaX + 8, y, { maxWidth: caixaLargura - 16 });
+          y += 6;
+          doc.text(`Quantidade: ${peca.quantidade}`, caixaX + 8, y);
           y += 8;
         });
+        alturaServicos = y - caixaY + 2;
       }
+      // Caixa visual (opcional)
+      doc.setDrawColor(100);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(caixaX, caixaY, caixaLargura, alturaServicos, 3, 3);
+
+      // Campo para assinatura do cliente
+      const assinaturaY = caixaY + alturaServicos + 20;
+      doc.setFontSize(12);
+      doc.setTextColor(80);
+      doc.text('Assinatura do Cliente:', caixaX + 2, assinaturaY);
+      doc.setLineWidth(0.5);
+      doc.line(caixaX + 50, assinaturaY + 1, caixaX + 150, assinaturaY + 1);
     };
 
     renderFicha(10);
