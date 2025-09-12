@@ -98,13 +98,24 @@ export default function App() {
   }
 
 
+
+  // Função para estimar altura total de uma via
+  function estimarAlturaVia(pecas: Peca[]): number {
+    let altura = 0;
+    pecas.forEach((peca, index) => {
+      altura += 10; // altura de uma linha (horizontal)
+    });
+    // Altura fixa do cabeçalho, logo, etc
+    return altura + 90;
+  }
+
   // Função para dividir as peças em páginas, para uma via/cópia
   function dividirEmPaginas(pecas: Peca[], alturaDisponivel: number) {
     const paginas: Peca[][] = [];
     let atual: Peca[] = [];
     let alturaAtual = 0;
     for (let i = 0; i < pecas.length; i++) {
-      const alturaPeca = estimarAlturaPeca(pecas[i]);
+      const alturaPeca = 10; // altura de uma linha (horizontal)
       if (alturaAtual + alturaPeca > alturaDisponivel && atual.length > 0) {
         paginas.push(atual);
         atual = [];
@@ -190,14 +201,27 @@ export default function App() {
   const gerarPDF = () => {
     const doc = new jsPDF();
     const pdfHeight = doc.internal.pageSize.getHeight();
-    const alturaDisponivel = pdfHeight - 60; // página inteira menos cabeçalho/margem
-    // Duas vias/cópias: para cada uma, imprime todas as peças, quebrando em páginas se necessário
-    for (let via = 0; via < 2; via++) {
-      const paginas = dividirEmPaginas(pecas, alturaDisponivel);
-      paginas.forEach((pecasPag, idx) => {
-        if (via > 0 || idx > 0) doc.addPage();
-        renderFicha(doc, pecasPag, 10);
-      });
+    const alturaDisponivel = (pdfHeight / 2) - 30; // altura útil para cada via se for na mesma página
+    const alturaPagina = pdfHeight - 60; // altura útil para uma via por página
+
+    // Estimar altura das duas vias
+    const alturaVia = estimarAlturaVia(pecas);
+    if (alturaVia * 2 <= pdfHeight - 20) {
+      // Cabe as duas vias na mesma página
+      renderFicha(doc, pecas, 10);
+      renderFicha(doc, pecas, pdfHeight / 2 + 5);
+      doc.setLineWidth(0.2);
+      doc.setDrawColor(150);
+      doc.line(10, pdfHeight / 2, doc.internal.pageSize.getWidth() - 10, pdfHeight / 2);
+    } else {
+      // Cada via em uma página (pode quebrar em várias páginas se necessário)
+      for (let via = 0; via < 2; via++) {
+        const paginas = dividirEmPaginas(pecas, alturaPagina);
+        paginas.forEach((pecasPag, idx) => {
+          if (via > 0 || idx > 0) doc.addPage();
+          renderFicha(doc, pecasPag, 10);
+        });
+      }
     }
     doc.save(`Ficha_${servico.cliente || 'servico'}.pdf`);
   }
@@ -206,13 +230,24 @@ export default function App() {
   const imprimirPDF = () => {
     const doc = new jsPDF();
     const pdfHeight = doc.internal.pageSize.getHeight();
-    const alturaDisponivel = pdfHeight - 60;
-    for (let via = 0; via < 2; via++) {
-      const paginas = dividirEmPaginas(pecas, alturaDisponivel);
-      paginas.forEach((pecasPag, idx) => {
-        if (via > 0 || idx > 0) doc.addPage();
-        renderFicha(doc, pecasPag, 10);
-      });
+    const alturaDisponivel = (pdfHeight / 2) - 30;
+    const alturaPagina = pdfHeight - 60;
+
+    const alturaVia = estimarAlturaVia(pecas);
+    if (alturaVia * 2 <= pdfHeight - 20) {
+      renderFicha(doc, pecas, 10);
+      renderFicha(doc, pecas, pdfHeight / 2 + 5);
+      doc.setLineWidth(0.2);
+      doc.setDrawColor(150);
+      doc.line(10, pdfHeight / 2, doc.internal.pageSize.getWidth() - 10, pdfHeight / 2);
+    } else {
+      for (let via = 0; via < 2; via++) {
+        const paginas = dividirEmPaginas(pecas, alturaPagina);
+        paginas.forEach((pecasPag, idx) => {
+          if (via > 0 || idx > 0) doc.addPage();
+          renderFicha(doc, pecasPag, 10);
+        });
+      }
     }
     // Imprimir: abre em uma nova aba com modo de impressão
     const blob = doc.output('blob');
