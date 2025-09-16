@@ -6,6 +6,7 @@
   "homepage": "./",
   "scripts": {
     "start": "electron .",
+    "start:web": "react-scripts start",
     "build": "react-scripts build",
     "pack": "electron-builder --dir",
     "dist": "npx electron-builder"
@@ -26,8 +27,8 @@
     }
   },
   "devDependencies": {
-    "@types/react": "^19.1.8",
-    "@types/react-dom": "^19.1.6",
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
     "electron": "^X.X.X",
     "electron-builder": "^26.0.12",
     "react-scripts": "^5.0.1"
@@ -45,9 +46,11 @@
     ]
   },
   "dependencies": {
+    "@types/react-router-dom": "^5.3.3",
     "jspdf": "^3.0.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-router-dom": "^7.9.1",
     "web-vitals": "^2.1.4"
   }
 }
