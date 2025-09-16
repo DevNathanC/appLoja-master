@@ -80,14 +80,21 @@ const App: React.FC = () => {
 
       // ...existing code...
       // Função auxiliar para desenhar uma via (sem título)
-      const desenharVia = (doc: any, viaY: number) => {
+      const desenharVia = (doc: any, viaY: number, logoBase64?: string) => {
+        // Adiciona logo retangular e título em ambas as vias
+        if (logoBase64) {
+          doc.addImage(logoBase64, 'JPEG', 10, viaY - 7, 28, 18);
+        }
+        doc.setFontSize(16);
+        doc.text('Ficha de Serviços de Costura', 105, viaY, { align: 'center' });
         doc.setFontSize(12);
-        // Informações do cliente (ajustado para ficar abaixo da imagem)
-        const baseY = viaY < 20 ? 30 : viaY + 10; // Se for a primeira via, começa abaixo da imagem
-  doc.text(`Cliente: ${servico.cliente}`, 15, baseY);
-  doc.text(`Telefone: ${servico.telefone}`, 15, baseY + 8);
-  doc.text(`Recebimento: ${formatarDataBR(servico.dataRecebimento)}`, 15, baseY + 16);
-  doc.text(`Entrega: ${formatarDataBR(servico.dataEntrega)}`, 15, baseY + 24);
+        doc.text('Valor Total: R$', 150, viaY, { align: 'left' });
+        // Informações do cliente (agora com mais espaçamento abaixo da logo)
+        const baseY = viaY + 20;
+        doc.text(`Cliente: ${servico.cliente}`, 15, baseY);
+        doc.text(`Telefone: ${servico.telefone}`, 15, baseY + 8);
+        doc.text(`Recebimento: ${formatarDataBR(servico.dataRecebimento)}`, 15, baseY + 16);
+        doc.text(`Entrega: ${formatarDataBR(servico.dataEntrega)}`, 15, baseY + 24);
         // Caixa de informações das peças (borda arredondada)
         const pecasBoxY = baseY + 32;
         let pecasBoxHeight = Math.max(12, pecas.length * 10 + 10);
@@ -130,22 +137,18 @@ const App: React.FC = () => {
       };
 
       if (viaHeight * 2 <= 280) {
-        desenharLogoETitulo(doc, logoBase64);
-        desenharVia(doc, 15); // primeira via
-        // Linha divisória
-        doc.setDrawColor(150);
-        doc.setLineWidth(0.5);
-        doc.line(10, viaHeight, 200, viaHeight);
-        doc.setFontSize(10);
-        doc.text('---------------------------------------------- Recorte ----------------------------------------------', 105, viaHeight + 5, { align: 'center' });
-        desenharLogoETitulo(doc, logoBase64);
-        desenharVia(doc, viaHeight + 15); // segunda via
+  desenharVia(doc, 15, logoBase64); // primeira via
+  // Linha divisória
+  doc.setDrawColor(150);
+  doc.setLineWidth(0.5);
+  doc.line(10, viaHeight, 200, viaHeight);
+  doc.setFontSize(10);
+  // Segunda via igual à primeira, mas ajustando Y
+  desenharVia(doc, viaHeight + 15, logoBase64); // segunda via
       } else {
-        desenharLogoETitulo(doc, logoBase64);
-        desenharVia(doc, 15); // primeira via
-        doc.addPage();
-        desenharLogoETitulo(doc, logoBase64);
-        desenharVia(doc, 15); // segunda via
+  desenharVia(doc, 15, logoBase64); // primeira via
+  doc.addPage();
+  desenharVia(doc, 15, logoBase64); // segunda via
       }
 
       // Aciona a caixa de diálogo de impressão

@@ -29,7 +29,7 @@
   "devDependencies": {
     "@types/react": "^19.1.13",
     "@types/react-dom": "^19.1.9",
-    "electron": "^X.X.X",
+    "electron": "^38.1.0",
     "electron-builder": "^26.0.12",
     "react-scripts": "^5.0.1"
   },
