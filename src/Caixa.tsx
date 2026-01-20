@@ -33,6 +33,8 @@ const Caixa: React.FC = () => {
     return data ? JSON.parse(data) : [];
   });
   const [mostrarFormulario, setMostrarFormulario] = useState<'entrada' | 'saida' | false>(false);
+  const [editandoEntrada, setEditandoEntrada] = useState<number | null>(null);
+  const [editandoSaida, setEditandoSaida] = useState<number | null>(null);
 
   const handleChangeEntrada = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -46,24 +48,80 @@ const Caixa: React.FC = () => {
 
   const handleAdicionarEntrada = (e: React.FormEvent) => {
     e.preventDefault();
-    setEntradas(prev => {
-      const novas = [...prev, entrada];
-      localStorage.setItem('entradas', JSON.stringify(novas));
-      return novas;
-    });
+    if (editandoEntrada !== null) {
+      // Editar entrada existente
+      setEntradas(prev => {
+        const novas = [...prev];
+        novas[editandoEntrada] = entrada;
+        localStorage.setItem('entradas', JSON.stringify(novas));
+        return novas;
+      });
+      setEditandoEntrada(null);
+    } else {
+      // Adicionar nova entrada
+      setEntradas(prev => {
+        const novas = [...prev, entrada];
+        localStorage.setItem('entradas', JSON.stringify(novas));
+        return novas;
+      });
+    }
     setEntrada({ data: '', nome: '', servico: '', valor: '', formaPagamento: '' });
     setMostrarFormulario(false);
   };
 
   const handleAdicionarSaida = (e: React.FormEvent) => {
     e.preventDefault();
-    setSaidas(prev => {
-      const novas = [...prev, saida];
-      localStorage.setItem('saidas', JSON.stringify(novas));
-      return novas;
-    });
+    if (editandoSaida !== null) {
+      // Editar saída existente
+      setSaidas(prev => {
+        const novas = [...prev];
+        novas[editandoSaida] = saida;
+        localStorage.setItem('saidas', JSON.stringify(novas));
+        return novas;
+      });
+      setEditandoSaida(null);
+    } else {
+      // Adicionar nova saída
+      setSaidas(prev => {
+        const novas = [...prev, saida];
+        localStorage.setItem('saidas', JSON.stringify(novas));
+        return novas;
+      });
+    }
     setSaida({ data: '', nome: '', servico: '', valor: '', formaPagamento: '' });
     setMostrarFormulario(false);
+  };
+
+  const handleExcluirEntrada = (index: number) => {
+    if (window.confirm('Deseja realmente excluir esta entrada?')) {
+      setEntradas(prev => {
+        const novas = prev.filter((_, i) => i !== index);
+        localStorage.setItem('entradas', JSON.stringify(novas));
+        return novas;
+      });
+    }
+  };
+
+  const handleEditarEntrada = (index: number) => {
+    setEntrada(entradas[index]);
+    setEditandoEntrada(index);
+    setMostrarFormulario('entrada');
+  };
+
+  const handleExcluirSaida = (index: number) => {
+    if (window.confirm('Deseja realmente excluir esta saída?')) {
+      setSaidas(prev => {
+        const novas = prev.filter((_, i) => i !== index);
+        localStorage.setItem('saidas', JSON.stringify(novas));
+        return novas;
+      });
+    }
+  };
+
+  const handleEditarSaida = (index: number) => {
+    setSaida(saidas[index]);
+    setEditandoSaida(index);
+    setMostrarFormulario('saida');
   };
   // Atualiza localStorage quando entradas ou saídas mudam (caso haja remoção futura)
   useEffect(() => {
@@ -319,6 +377,7 @@ const Caixa: React.FC = () => {
                   <th style={{ border: '1px solid #ccc', padding: 8 }}>Serviço</th>
                   <th style={{ border: '1px solid #ccc', padding: 8 }}>Valor</th>
                   <th style={{ border: '1px solid #ccc', padding: 8 }}>Forma de Pagamento</th>
+                  <th style={{ border: '1px solid #ccc', padding: 8 }}>Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -331,6 +390,20 @@ const Caixa: React.FC = () => {
                       R$ {(parseFloat(item.valor) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </td>
                     <td style={{ border: '1px solid #ccc', padding: 8, textAlign: 'center' }}>{item.formaPagamento}</td>
+                    <td style={{ border: '1px solid #ccc', padding: 8, textAlign: 'center' }}>
+                      <button
+                        onClick={() => handleEditarEntrada(idx)}
+                        style={{ padding: '6px 12px', fontSize: 14, background: '#2196f3', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', marginRight: 8 }}
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => handleExcluirEntrada(idx)}
+                        style={{ padding: '6px 12px', fontSize: 14, background: '#f44336', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+                      >
+                        Excluir
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -348,6 +421,7 @@ const Caixa: React.FC = () => {
                   <th style={{ border: '1px solid #ccc', padding: 8 }}>Nome</th>
                   <th style={{ border: '1px solid #ccc', padding: 8 }}>Valor</th>
                   <th style={{ border: '1px solid #ccc', padding: 8 }}>Forma de Pagamento</th>
+                  <th style={{ border: '1px solid #ccc', padding: 8 }}>Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -359,6 +433,20 @@ const Caixa: React.FC = () => {
                       R$ {(parseFloat(item.valor) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </td>
                     <td style={{ border: '1px solid #ccc', padding: 8, textAlign: 'center' }}>{item.formaPagamento}</td>
+                    <td style={{ border: '1px solid #ccc', padding: 8, textAlign: 'center' }}>
+                      <button
+                        onClick={() => handleEditarSaida(idx)}
+                        style={{ padding: '6px 12px', fontSize: 14, background: '#2196f3', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer', marginRight: 8 }}
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => handleExcluirSaida(idx)}
+                        style={{ padding: '6px 12px', fontSize: 14, background: '#f44336', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+                      >
+                        Excluir
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -442,8 +530,8 @@ const Caixa: React.FC = () => {
           zIndex: 1000
         }}>
           <form onSubmit={handleAdicionarEntrada} style={{ background: '#fff', padding: 32, borderRadius: 8, boxShadow: '0 2px 16px rgba(0,0,0,0.2)', minWidth: 320, display: 'flex', flexDirection: 'column', gap: 16, position: 'relative' }}>
-            <button type="button" onClick={() => setMostrarFormulario(false)} style={{ position: 'absolute', top: 8, right: 8, background: 'transparent', border: 'none', fontSize: 22, cursor: 'pointer', color: '#888' }}>&times;</button>
-            <h2 style={{ textAlign: 'center', marginBottom: 8 }}>Nova Entrada</h2>
+            <button type="button" onClick={() => { setMostrarFormulario(false); setEditandoEntrada(null); }} style={{ position: 'absolute', top: 8, right: 8, background: 'transparent', border: 'none', fontSize: 22, cursor: 'pointer', color: '#888' }}>&times;</button>
+            <h2 style={{ textAlign: 'center', marginBottom: 8 }}>{editandoEntrada !== null ? 'Editar Entrada' : 'Nova Entrada'}</h2>
             <input
               type="date"
               name="data"
@@ -498,7 +586,7 @@ const Caixa: React.FC = () => {
               type="submit"
               style={{ padding: '12px 32px', fontSize: 18, background: '#4caf50', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
             >
-              Adicionar
+              {editandoEntrada !== null ? 'Salvar' : 'Adicionar'}
             </button>
           </form>
         </div>
@@ -519,8 +607,8 @@ const Caixa: React.FC = () => {
           zIndex: 1000
         }}>
           <form onSubmit={handleAdicionarSaida} style={{ background: '#fff', padding: 32, borderRadius: 8, boxShadow: '0 2px 16px rgba(0,0,0,0.2)', minWidth: 320, display: 'flex', flexDirection: 'column', gap: 16, position: 'relative' }}>
-            <button type="button" onClick={() => setMostrarFormulario(false)} style={{ position: 'absolute', top: 8, right: 8, background: 'transparent', border: 'none', fontSize: 22, cursor: 'pointer', color: '#888' }}>&times;</button>
-            <h2 style={{ textAlign: 'center', marginBottom: 8 }}>Nova Saída</h2>
+            <button type="button" onClick={() => { setMostrarFormulario(false); setEditandoSaida(null); }} style={{ position: 'absolute', top: 8, right: 8, background: 'transparent', border: 'none', fontSize: 22, cursor: 'pointer', color: '#888' }}>&times;</button>
+            <h2 style={{ textAlign: 'center', marginBottom: 8 }}>{editandoSaida !== null ? 'Editar Saída' : 'Nova Saída'}</h2>
             <input
               type="date"
               name="data"
@@ -566,7 +654,7 @@ const Caixa: React.FC = () => {
               type="submit"
               style={{ padding: '12px 32px', fontSize: 18, background: '#f44336', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
             >
-              Adicionar
+              {editandoSaida !== null ? 'Salvar' : 'Adicionar'}
             </button>
           </form>
         </div>
