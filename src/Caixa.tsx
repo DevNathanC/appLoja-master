@@ -9,7 +9,19 @@ type Entrada = {
   formaPagamento: string;
 };
 
+type Cliente = {
+  nome: string;
+  telefone: string;
+  email: string;
+  endereco: string;
+  dataCadastro: string;
+};
+
 const Caixa: React.FC = () => {
+  const [clientes, setClientes] = useState<Cliente[]>(() => {
+    const data = localStorage.getItem('clientes');
+    return data ? JSON.parse(data) : [];
+  });
   const [entrada, setEntrada] = useState<Entrada>({
     data: '',
     nome: '',
@@ -548,8 +560,14 @@ const Caixa: React.FC = () => {
               onChange={handleChangeEntrada}
               required
               placeholder="Nome"
+              list="clientes-list"
               style={{ padding: 10, fontSize: 16, borderRadius: 4, border: '1px solid #ccc' }}
             />
+            <datalist id="clientes-list">
+              {clientes.map((cliente, index) => (
+                <option key={index} value={cliente.nome} />
+              ))}
+            </datalist>
             <input
               type="text"
               name="servico"
@@ -625,8 +643,14 @@ const Caixa: React.FC = () => {
               onChange={handleChangeSaida}
               required
               placeholder="Nome"
+              list="clientes-list-saida"
               style={{ padding: 10, fontSize: 16, borderRadius: 4, border: '1px solid #ccc' }}
             />
+            <datalist id="clientes-list-saida">
+              {clientes.map((cliente, index) => (
+                <option key={index} value={cliente.nome} />
+              ))}
+            </datalist>
             <input
               type="number"
               name="valor"

@@ -10,6 +10,7 @@ import './App.css';
 import Sidebar from './Sidebar';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import Caixa from './Caixa';
+import Clientes from './Clientes';
 
 const tipos = [
   { value: 'barra', label: 'Barra' },
@@ -315,6 +316,7 @@ const App: React.FC = () => {
               </div>
             } />
             <Route path="/caixa" element={<Caixa />} />
+            <Route path="/clientes" element={<Clientes />} />
           </Routes>
         </div>
       </div>
