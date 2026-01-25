@@ -1,7 +1,7 @@
 
 import React from 'react';
 import './Sidebar.css';
-import { Link } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 // Importa logoBase64 do App
 
 
@@ -9,12 +9,10 @@ import { Link } from 'react-router-dom';
 const Sidebar: React.FC = () => {
   return (
     <div className="sidebar">
-  {/* Logo removida conforme solicitado */}
-      <h2>Menu</h2>
       <ul>
-        <li><Link to="/">Entradas de Serviços</Link></li>
-        <li><Link to="/caixa">Caixa</Link></li>
-        <li><Link to="/clientes">Clientes</Link></li>
+        <li><NavLink to="/" end>✂️ Entradas de Serviços</NavLink></li>
+        <li><NavLink to="/caixa">💰 Caixa</NavLink></li>
+        <li><NavLink to="/clientes">👥 Clientes</NavLink></li>
       </ul>
     </div>
   );

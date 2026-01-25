@@ -9,6 +9,28 @@
   color: #333;
 }
 
+.site-header {
+  background: #3d0e11;
+  color: white;
+  padding: 20px 30px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+}
+
+.site-header h1 {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: white;
+  letter-spacing: 1px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+  text-align: left;
+}
+
 h1 {
   text-align: center;
   margin-bottom: 30px;

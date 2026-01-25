@@ -179,9 +179,12 @@ const App: React.FC = () => {
 
   return (
     <Router>
+      <header className="site-header">
+        <h1>🧵 Atelie Josy Nunes</h1>
+      </header>
       <div style={{ display: 'flex' }}>
         <Sidebar />
-        <div style={{ marginLeft: 200, flex: 1 }}>
+        <div style={{ marginLeft: 250, flex: 1, marginTop: 0 }}>
           <Routes>
             <Route path="/" element={
               <div className="App">
