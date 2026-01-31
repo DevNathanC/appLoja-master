@@ -51,7 +51,25 @@ const App: React.FC = () => {
   });
 
   const handleServicoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setServico({ ...servico, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    
+    // Se o campo alterado for o cliente, buscar o telefone automaticamente
+    if (name === 'cliente') {
+      const clientesData = localStorage.getItem('clientes');
+      if (clientesData) {
+        const clientes = JSON.parse(clientesData);
+        const clienteEncontrado = clientes.find((c: any) => 
+          c.nome.toLowerCase() === value.toLowerCase()
+        );
+        
+        if (clienteEncontrado) {
+          setServico({ ...servico, cliente: value, telefone: clienteEncontrado.telefone });
+          return;
+        }
+      }
+    }
+    
+    setServico({ ...servico, [name]: value });
   };
   const handlePecaChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setPecaAtual({ ...pecaAtual, [e.target.name]: e.target.value });
@@ -60,6 +78,13 @@ const App: React.FC = () => {
     if (!pecaAtual.nome || !pecaAtual.servico) return;
     setPecas([...pecas, { ...pecaAtual, quantidade: Number(pecaAtual.quantidade) }]);
     setPecaAtual({ nome: '', servico: '', descricao: '', quantidade: 1 });
+  };
+  const editarPeca = (idx: number) => {
+    setPecaAtual(pecas[idx]);
+    excluirPeca(idx);
+  };
+  const excluirPeca = (idx: number) => {
+    setPecas(pecas.filter((_, i) => i !== idx));
   };
   const limparFormulario = () => {
     setServico({ cliente: '', telefone: '', dataRecebimento: '', dataEntrega: '' });
@@ -73,7 +98,7 @@ const App: React.FC = () => {
     // Adicionar logo no topo esquerdo
     const addLogoAndContinue = (logoBase64?: string) => {
       if (logoBase64) {
-        doc.addImage(logoBase64, 'JPEG', 10, 8, 28, 18);
+        doc.addImage(logoBase64, 'JPEG', 10, 8, 35, 24);
       }
       doc.setFontSize(16);
       doc.text('Ficha de Serviços de Costura', 105, 15, { align: 'center' });
@@ -81,39 +106,48 @@ const App: React.FC = () => {
 
       // ...existing code...
       // Função auxiliar para desenhar uma via (sem título)
-      const desenharVia = (doc: any, viaY: number, logoBase64?: string) => {
+      const desenharVia = (doc: any, viaY: number, logoBase64?: string, mostrarAssinatura: boolean = true) => {
         // Adiciona logo retangular e título em ambas as vias
         if (logoBase64) {
-          doc.addImage(logoBase64, 'JPEG', 10, viaY - 7, 28, 18);
+          doc.addImage(logoBase64, 'JPEG', 10, viaY - 7, 35, 24);
         }
+        doc.setFontSize(12);
+        doc.text('(11) 99361-4898', 10, viaY + 18);
         doc.setFontSize(16);
         doc.text('Ficha de Serviços de Costura', 105, viaY, { align: 'center' });
         doc.setFontSize(12);
         doc.text('Valor Total: R$', 150, viaY, { align: 'left' });
         // Informações do cliente (agora com mais espaçamento abaixo da logo)
-        const baseY = viaY + 20;
+        const baseY = viaY + 28;
         doc.text(`Cliente: ${servico.cliente}`, 15, baseY);
         doc.text(`Telefone: ${servico.telefone}`, 15, baseY + 8);
         doc.text(`Recebimento: ${formatarDataBR(servico.dataRecebimento)}`, 15, baseY + 16);
         doc.text(`Entrega: ${formatarDataBR(servico.dataEntrega)}`, 15, baseY + 24);
         // Caixa de informações das peças (borda arredondada)
         const pecasBoxY = baseY + 32;
-        let pecasBoxHeight = Math.max(12, pecas.length * 10 + 10);
+        let pecasBoxHeight = Math.max(12, pecas.length * 10 + 20);
         doc.roundedRect(10, pecasBoxY, 190, pecasBoxHeight, 6, 6);
         doc.text('Peças:', 15, pecasBoxY + 10);
         let y = pecasBoxY + 18;
         pecas.forEach((peca, idx) => {
-          doc.text(
-            `${idx + 1}. ${peca.nome} - ${tipos.find(t => t.value === peca.servico)?.label || peca.servico} - ${peca.descricao} (Qtd: ${peca.quantidade})`,
-            15,
-            y
-          );
-          y += 10;
+          const textoLinha = `${idx + 1}. ${peca.nome} - ${peca.servico} - ${peca.descricao} (Qtd: ${peca.quantidade})`;
+          const linhasQuebradasList = doc.splitTextToSize(textoLinha, 175);
+          linhasQuebradasList.forEach((linha: string) => {
+            doc.text(linha, 15, y);
+            y += 7;
+          });
+          y += 3;
         });
-        // Campo para assinatura
-        const assinaturaY = pecasBoxY + pecasBoxHeight + 16;
-        doc.text('Assinatura:', 15, assinaturaY);
-        doc.line(40, assinaturaY, 110, assinaturaY);
+        const totalPecas = pecas.reduce((acc, peca) => acc + peca.quantidade, 0);
+        doc.setFont(undefined, 'bold');
+        doc.text(`Total de peças: ${totalPecas}`, 15, y + 6);
+        doc.setFont(undefined, 'normal');
+        // Campo para assinatura (apenas se solicitado)
+        if (mostrarAssinatura) {
+          const assinaturaY = pecasBoxY + pecasBoxHeight + 30;
+          doc.text('Assinatura:', 15, assinaturaY);
+          doc.line(40, assinaturaY, 110, assinaturaY);
+        }
       };
 
 
@@ -128,7 +162,7 @@ const App: React.FC = () => {
       // Função para desenhar logo e título
       const desenharLogoETitulo = (doc: any, logoBase64?: string) => {
         if (logoBase64) {
-          doc.addImage(logoBase64, 'JPEG', 10, 8, 28, 18);
+          doc.addImage(logoBase64, 'JPEG', 10, 8, 35, 24);
         }
         doc.setFontSize(16);
         doc.text('Ficha de Serviços de Costura', 105, 15, { align: 'center' });
@@ -138,18 +172,18 @@ const App: React.FC = () => {
       };
 
       if (viaHeight * 2 <= 280) {
-  desenharVia(doc, 15, logoBase64); // primeira via
+  desenharVia(doc, 15, logoBase64, false); // primeira via (sem assinatura)
   // Linha divisória
   doc.setDrawColor(150);
   doc.setLineWidth(0.5);
   doc.line(10, viaHeight, 200, viaHeight);
   doc.setFontSize(10);
   // Segunda via igual à primeira, mas ajustando Y
-  desenharVia(doc, viaHeight + 15, logoBase64); // segunda via
+  desenharVia(doc, viaHeight + 15, logoBase64, true); // segunda via (com assinatura)
       } else {
-  desenharVia(doc, 15, logoBase64); // primeira via
+  desenharVia(doc, 15, logoBase64, false); // primeira via (sem assinatura)
   doc.addPage();
-  desenharVia(doc, 15, logoBase64); // segunda via
+  desenharVia(doc, 15, logoBase64, true); // segunda via (com assinatura)
       }
 
       // Aciona a caixa de diálogo de impressão
@@ -158,8 +192,8 @@ const App: React.FC = () => {
       window.open(doc.output('bloburl'), '_blank');
     };
 
-    // Carregar logo.jpg como base64
-  fetch('/logo.jpg')
+    // Carregar logo.png como base64
+  fetch('/logo.png')
       .then(response => response.blob())
       .then(blob => {
         const reader = new FileReader();
@@ -248,16 +282,13 @@ const App: React.FC = () => {
                   <br />
                   <label>
                     Serviço:
-                    <select
+                    <input
+                      type="text"
                       name="servico"
                       value={pecaAtual.servico}
                       onChange={handlePecaChange}
-                    >
-                      <option value="">Selecione</option>
-                      {tipos.map(tipo => (
-                        <option key={tipo.value} value={tipo.value}>{tipo.label}</option>
-                      ))}
-                    </select>
+                      placeholder="Ex: Costura, Bainha, Reparo..."
+                    />
                   </label>
                   <br />
                   <label>
@@ -308,10 +339,26 @@ const App: React.FC = () => {
                 {pecas.length === 0 ? (
                   <p>Nenhuma peça adicionada.</p>
                 ) : (
-                  <ul>
+                  <ul style={{ listStyle: 'none', padding: 0 }}>
                     {pecas.map((peca, idx) => (
-                      <li key={idx}>
-                        <strong>{peca.nome}</strong> - {tipos.find(t => t.value === peca.servico)?.label || peca.servico} - {peca.descricao} (Qtd: {peca.quantidade})
+                      <li key={idx} style={{ marginBottom: '12px', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}>
+                        <div style={{ marginBottom: '8px', wordWrap: 'break-word', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
+                          <strong>{peca.nome}</strong> - {peca.servico} - {peca.descricao} (Qtd: {peca.quantidade})
+                        </div>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            onClick={() => editarPeca(idx)}
+                            style={{ padding: '6px 12px', backgroundColor: '#2196F3', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px' }}
+                          >
+                            Editar
+                          </button>
+                          <button
+                            onClick={() => excluirPeca(idx)}
+                            style={{ padding: '6px 12px', backgroundColor: '#f44336', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px' }}
+                          >
+                            Excluir
+                          </button>
+                        </div>
                       </li>
                     ))}
                   </ul>

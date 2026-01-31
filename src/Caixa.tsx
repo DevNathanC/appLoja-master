@@ -47,6 +47,13 @@ const Caixa: React.FC = () => {
   const [mostrarFormulario, setMostrarFormulario] = useState<'entrada' | 'saida' | false>(false);
   const [editandoEntrada, setEditandoEntrada] = useState<number | null>(null);
   const [editandoSaida, setEditandoSaida] = useState<number | null>(null);
+  const [metasAjustadas, setMetasAjustadas] = useState<{ diaria: number; semanal: number; mensal: number }>(() => {
+    const data = localStorage.getItem('metasAjustadas');
+    return data ? JSON.parse(data) : { diaria: 0, semanal: 0, mensal: 0 };
+  });
+  const [novaMetaDiaria, setNovaMetaDiaria] = useState('');
+  const [novaMetaSemanal, setNovaMetaSemanal] = useState('');
+  const [novaMetaMensal, setNovaMetaMensal] = useState('');
 
   const handleChangeEntrada = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -144,6 +151,10 @@ const Caixa: React.FC = () => {
     localStorage.setItem('saidas', JSON.stringify(saidas));
   }, [saidas]);
 
+  useEffect(() => {
+    localStorage.setItem('metasAjustadas', JSON.stringify(metasAjustadas));
+  }, [metasAjustadas]);
+
   // Função para formatar data no formato brasileiro
   function formatarDataBR(data: string) {
     if (!data) return '';
@@ -155,10 +166,23 @@ const Caixa: React.FC = () => {
   const gerarExtratoPDF = () => {
     const doc = new jsPDF();
     let y = 20;
-    doc.setFontSize(18);
-    doc.text('Extrato de Entradas e Saídas', 105, y, { align: 'center' });
-    y += 10;
-    doc.setFontSize(12);
+    
+    // Cabeçalho
+    doc.setFillColor(33, 150, 243);
+    doc.rect(0, 0, 210, 30, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Extrato de Entradas e Saídas', 105, 18, { align: 'center' });
+    
+    // Data de geração
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    const dataAtual = new Date().toLocaleDateString('pt-BR');
+    doc.text(`Gerado em: ${dataAtual}`, 105, 25, { align: 'center' });
+    
+    doc.setTextColor(0, 0, 0);
+    y = 40;
 
     // Agrupar por data
     const todasDatas = Array.from(new Set([
@@ -170,30 +194,73 @@ const Caixa: React.FC = () => {
       const entradasDia = entradas.filter((e: Entrada) => e.data === data);
       const saidasDia = saidas.filter((s: Entrada) => s.data === data);
       if (entradasDia.length === 0 && saidasDia.length === 0) return;
-      y += 8;
+      
+      // Cabeçalho da data
+      doc.setFillColor(240, 240, 240);
+      doc.roundedRect(10, y - 5, 190, 8, 2, 2, 'F');
       doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
       doc.text(`Data: ${formatarDataBR(data)}`, 15, y);
       doc.setFont('helvetica', 'normal');
-      y += 6;
+      doc.setFontSize(10);
+      y += 10;
+      
       if (entradasDia.length > 0) {
-        doc.text('Entradas:', 20, y);
+        doc.setTextColor(76, 175, 80);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Entradas:', 15, y);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(0, 0, 0);
         y += 6;
         entradasDia.forEach((e: Entrada) => {
-          doc.text(`Nome: ${e.nome}  Serviço: ${e.servico || '-'}  Valor: R$ ${(parseFloat(e.valor) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}  Forma: ${e.formaPagamento}`, 25, y);
-          y += 6;
+          const texto = `${e.nome} - ${e.servico || '-'} - R$ ${(parseFloat(e.valor) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${e.formaPagamento})`;
+          const linhas = doc.splitTextToSize(texto, 175);
+          linhas.forEach((linha: string) => {
+            doc.text(linha, 20, y);
+            y += 5;
+          });
         });
+        y += 2;
       }
+      
       if (saidasDia.length > 0) {
-        doc.text('Saídas:', 20, y);
+        doc.setTextColor(244, 67, 54);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Saídas:', 15, y);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(0, 0, 0);
         y += 6;
         saidasDia.forEach((s: Entrada) => {
-          doc.text(`Nome: ${s.nome}  Valor: R$ ${(parseFloat(s.valor) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}  Forma: ${s.formaPagamento}`, 25, y);
-          y += 6;
+          const texto = `${s.nome} - R$ ${(parseFloat(s.valor) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} (${s.formaPagamento})`;
+          const linhas = doc.splitTextToSize(texto, 175);
+          linhas.forEach((linha: string) => {
+            doc.text(linha, 20, y);
+            y += 5;
+          });
         });
+        y += 2;
       }
-      y += 2;
+      
+      y += 5;
       if (y > 270) { doc.addPage(); y = 20; }
     });
+
+    // Resumo final
+    if (y > 240) { doc.addPage(); y = 20; }
+    y += 10;
+    doc.setFillColor(33, 150, 243);
+    doc.rect(10, y - 5, 190, 30, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    
+    const totalEntradas = entradas.reduce((acc, item) => acc + (parseFloat(item.valor) || 0), 0);
+    const totalSaidas = saidas.reduce((acc, item) => acc + (parseFloat(item.valor) || 0), 0);
+    const saldo = totalEntradas - totalSaidas;
+    
+    doc.text(`Total Entradas: R$ ${totalEntradas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 15, y + 5);
+    doc.text(`Total Saídas: R$ ${totalSaidas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 15, y + 12);
+    doc.text(`Saldo: R$ ${saldo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 15, y + 19);
 
     doc.save('extrato-caixa.pdf');
   };
@@ -202,62 +269,121 @@ const Caixa: React.FC = () => {
   const exportarDados = () => {
     const doc = new jsPDF();
     let y = 20;
-    doc.setFontSize(18);
-    doc.text('Relatório de Entradas e Saídas', 105, y, { align: 'center' });
-    y += 10;
-    doc.setFontSize(12);
-
-    // Entradas
+    
+    // Cabeçalho
+    doc.setFillColor(76, 175, 80);
+    doc.rect(0, 0, 210, 30, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(20);
     doc.setFont('helvetica', 'bold');
-    doc.text('Entradas:', 15, y);
+    doc.text('Relatório de Entradas e Saídas', 105, 18, { align: 'center' });
+    
+    // Data de geração
+    doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
-    y += 8;
+    const dataAtual = new Date().toLocaleDateString('pt-BR');
+    doc.text(`Gerado em: ${dataAtual}`, 105, 25, { align: 'center' });
+    
+    doc.setTextColor(0, 0, 0);
+    y = 45;
+
+    // Seção Entradas
+    doc.setFillColor(76, 175, 80);
+    doc.rect(10, y - 7, 190, 10, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(14);
+    doc.text('Entradas', 15, y);
+    doc.setTextColor(0, 0, 0);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    y += 10;
+    
     if (entradas.length === 0) {
+      doc.setTextColor(100, 100, 100);
       doc.text('Nenhuma entrada cadastrada.', 20, y);
-      y += 8;
+      doc.setTextColor(0, 0, 0);
+      y += 10;
     } else {
       entradas.forEach((e, idx) => {
-        doc.text(
-          `Data: ${formatarDataBR(e.data)} | Nome: ${e.nome} | Serviço: ${e.servico} | Valor: R$ ${(parseFloat(e.valor) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} | Forma: ${e.formaPagamento}`,
-          20, y
-        );
-        y += 8;
+        // Linha zebrada
+        if (idx % 2 === 0) {
+          doc.setFillColor(245, 245, 245);
+          doc.rect(10, y - 4, 190, 8, 'F');
+        }
+        
+        const texto = `${formatarDataBR(e.data)} | ${e.nome} | ${e.servico} | R$ ${(parseFloat(e.valor) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} | ${e.formaPagamento}`;
+        const linhas = doc.splitTextToSize(texto, 185);
+        linhas.forEach((linha: string) => {
+          doc.text(linha, 15, y);
+          y += 5;
+        });
+        y += 3;
         if (y > 270) { doc.addPage(); y = 20; }
       });
     }
 
-    y += 8;
+    y += 10;
+    
+    // Seção Saídas
+    doc.setFillColor(244, 67, 54);
+    doc.rect(10, y - 7, 190, 10, 'F');
+    doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
-    doc.text('Saídas:', 15, y);
+    doc.setFontSize(14);
+    doc.text('Saídas', 15, y);
+    doc.setTextColor(0, 0, 0);
     doc.setFont('helvetica', 'normal');
-    y += 8;
+    doc.setFontSize(10);
+    y += 10;
+    
     if (saidas.length === 0) {
+      doc.setTextColor(100, 100, 100);
       doc.text('Nenhuma saída cadastrada.', 20, y);
-      y += 8;
+      doc.setTextColor(0, 0, 0);
+      y += 10;
     } else {
       saidas.forEach((s, idx) => {
-        doc.text(
-          `Data: ${formatarDataBR(s.data)} | Nome: ${s.nome} | Valor: R$ ${(parseFloat(s.valor) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} | Forma: ${s.formaPagamento}`,
-          20, y
-        );
-        y += 8;
+        // Linha zebrada
+        if (idx % 2 === 0) {
+          doc.setFillColor(245, 245, 245);
+          doc.rect(10, y - 4, 190, 8, 'F');
+        }
+        
+        const texto = `${formatarDataBR(s.data)} | ${s.nome} | R$ ${(parseFloat(s.valor) || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })} | ${s.formaPagamento}`;
+        const linhas = doc.splitTextToSize(texto, 185);
+        linhas.forEach((linha: string) => {
+          doc.text(linha, 15, y);
+          y += 5;
+        });
+        y += 3;
         if (y > 270) { doc.addPage(); y = 20; }
       });
     }
 
-    y += 8;
+    // Resumo/Totais
+    if (y > 230) { doc.addPage(); y = 20; }
+    y += 15;
+    
+    doc.setFillColor(33, 150, 243);
+    doc.roundedRect(10, y - 7, 190, 35, 3, 3, 'F');
+    doc.setTextColor(255, 255, 255);
     doc.setFont('helvetica', 'bold');
-    doc.text('Totais:', 15, y);
-    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(14);
+    doc.text('Resumo Financeiro', 15, y);
+    doc.setFontSize(11);
     y += 8;
+    
     const totalEntradas = entradas.reduce((acc, item) => acc + (parseFloat(item.valor) || 0), 0);
     const totalSaidas = saidas.reduce((acc, item) => acc + (parseFloat(item.valor) || 0), 0);
     const saldo = totalEntradas - totalSaidas;
-    doc.text(`Total Entradas: R$ ${totalEntradas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 20, y);
-    y += 8;
-    doc.text(`Total Saídas: R$ ${totalSaidas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 20, y);
-    y += 8;
-    doc.text(`Saldo: R$ ${saldo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 20, y);
+    
+    doc.text(`Total de Entradas: R$ ${totalEntradas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 15, y);
+    y += 7;
+    doc.text(`Total de Saídas: R$ ${totalSaidas.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 15, y);
+    y += 7;
+    doc.setFontSize(13);
+    doc.text(`Saldo Final: R$ ${saldo.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`, 15, y);
 
     doc.save('relatorio-caixa.pdf');
   };
@@ -357,10 +483,318 @@ const Caixa: React.FC = () => {
     document.body.appendChild(overlay);
   };
 
+  // Funções para calcular metas
+  const calcularMetaDiaria = () => {
+    const hoje = new Date().toISOString().split('T')[0];
+    const entradaHoje = entradas
+      .filter(e => e.data === hoje)
+      .reduce((acc, e) => acc + (parseFloat(e.valor) || 0), 0);
+    const saidaHoje = saidas
+      .filter(e => e.data === hoje)
+      .reduce((acc, e) => acc + (parseFloat(e.valor) || 0), 0);
+    return entradaHoje - saidaHoje;
+  };
+
+  const calcularMetaSemanal = () => {
+    const hoje = new Date();
+    const primeiroDiaSemana = new Date(hoje);
+    primeiroDiaSemana.setDate(hoje.getDate() - hoje.getDay());
+    
+    const primeiroDiaSemanaStr = primeiroDiaSemana.toISOString().split('T')[0];
+    
+    const entradaSemana = entradas
+      .filter(e => e.data >= primeiroDiaSemanaStr)
+      .reduce((acc, e) => acc + (parseFloat(e.valor) || 0), 0);
+    const saidaSemana = saidas
+      .filter(e => e.data >= primeiroDiaSemanaStr)
+      .reduce((acc, e) => acc + (parseFloat(e.valor) || 0), 0);
+    return entradaSemana - saidaSemana;
+  };
+
+  const calcularMetaMensal = () => {
+    const hoje = new Date();
+    const mesAtual = String(hoje.getMonth() + 1).padStart(2, '0');
+    const anoAtual = hoje.getFullYear();
+    
+    const entradaMes = entradas
+      .filter(e => e.data.startsWith(`${anoAtual}-${mesAtual}`))
+      .reduce((acc, e) => acc + (parseFloat(e.valor) || 0), 0);
+    const saidaMes = saidas
+      .filter(e => e.data.startsWith(`${anoAtual}-${mesAtual}`))
+      .reduce((acc, e) => acc + (parseFloat(e.valor) || 0), 0);
+    return entradaMes - saidaMes;
+  };
+
+  const abrirModalAjusteMetas = () => {
+    const overlay = document.createElement('div');
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100%';
+    overlay.style.height = '100%';
+    overlay.style.background = 'rgba(0, 0, 0, 0.5)';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.zIndex = '1000';
+
+    const modal = document.createElement('div');
+    modal.style.background = '#fff';
+    modal.style.padding = '32px';
+    modal.style.borderRadius = '8px';
+    modal.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.15)';
+    modal.style.width = '400px';
+    modal.style.maxHeight = '80vh';
+    modal.style.overflowY = 'auto';
+
+    const titulo = document.createElement('h2');
+    titulo.textContent = 'Ajustar Metas';
+    titulo.style.marginTop = '0';
+    modal.appendChild(titulo);
+
+    // Campo Meta Diária
+    const labelDiaria = document.createElement('label');
+    labelDiaria.textContent = 'Meta Diária (R$):';
+    labelDiaria.style.display = 'block';
+    labelDiaria.style.marginBottom = '8px';
+    labelDiaria.style.fontWeight = 'bold';
+    modal.appendChild(labelDiaria);
+
+    const inputDiaria = document.createElement('input');
+    inputDiaria.type = 'number';
+    inputDiaria.placeholder = '0.00';
+    inputDiaria.value = metasAjustadas.diaria.toString();
+    inputDiaria.style.width = '100%';
+    inputDiaria.style.padding = '8px';
+    inputDiaria.style.marginBottom = '16px';
+    inputDiaria.style.border = '1px solid #ccc';
+    inputDiaria.style.borderRadius = '4px';
+    inputDiaria.style.boxSizing = 'border-box';
+    modal.appendChild(inputDiaria);
+
+    // Campo Meta Semanal
+    const labelSemanal = document.createElement('label');
+    labelSemanal.textContent = 'Meta Semanal (R$):';
+    labelSemanal.style.display = 'block';
+    labelSemanal.style.marginBottom = '8px';
+    labelSemanal.style.fontWeight = 'bold';
+    modal.appendChild(labelSemanal);
+
+    const inputSemanal = document.createElement('input');
+    inputSemanal.type = 'number';
+    inputSemanal.placeholder = '0.00';
+    inputSemanal.value = metasAjustadas.semanal.toString();
+    inputSemanal.style.width = '100%';
+    inputSemanal.style.padding = '8px';
+    inputSemanal.style.marginBottom = '16px';
+    inputSemanal.style.border = '1px solid #ccc';
+    inputSemanal.style.borderRadius = '4px';
+    inputSemanal.style.boxSizing = 'border-box';
+    modal.appendChild(inputSemanal);
+
+    // Campo Meta Mensal
+    const labelMensal = document.createElement('label');
+    labelMensal.textContent = 'Meta Mensal (R$):';
+    labelMensal.style.display = 'block';
+    labelMensal.style.marginBottom = '8px';
+    labelMensal.style.fontWeight = 'bold';
+    modal.appendChild(labelMensal);
+
+    const inputMensal = document.createElement('input');
+    inputMensal.type = 'number';
+    inputMensal.placeholder = '0.00';
+    inputMensal.value = metasAjustadas.mensal.toString();
+    inputMensal.style.width = '100%';
+    inputMensal.style.padding = '8px';
+    inputMensal.style.marginBottom = '24px';
+    inputMensal.style.border = '1px solid #ccc';
+    inputMensal.style.borderRadius = '4px';
+    inputMensal.style.boxSizing = 'border-box';
+    modal.appendChild(inputMensal);
+
+    // Botões
+    const btns = document.createElement('div');
+    btns.style.display = 'flex';
+    btns.style.gap = '12px';
+    btns.style.justifyContent = 'flex-end';
+
+    const btnSalvar = document.createElement('button');
+    btnSalvar.textContent = 'Salvar';
+    btnSalvar.style.padding = '12px 32px';
+    btnSalvar.style.fontSize = '16px';
+    btnSalvar.style.background = '#4caf50';
+    btnSalvar.style.color = '#fff';
+    btnSalvar.style.border = 'none';
+    btnSalvar.style.borderRadius = '4px';
+    btnSalvar.style.cursor = 'pointer';
+    btnSalvar.onclick = () => {
+      setMetasAjustadas({
+        diaria: parseFloat(inputDiaria.value) || 0,
+        semanal: parseFloat(inputSemanal.value) || 0,
+        mensal: parseFloat(inputMensal.value) || 0
+      });
+      document.body.removeChild(overlay);
+    };
+    btns.appendChild(btnSalvar);
+
+    const btnCancelar = document.createElement('button');
+    btnCancelar.textContent = 'Cancelar';
+    btnCancelar.style.padding = '12px 32px';
+    btnCancelar.style.fontSize = '16px';
+    btnCancelar.style.background = '#757575';
+    btnCancelar.style.color = '#fff';
+    btnCancelar.style.border = 'none';
+    btnCancelar.style.borderRadius = '4px';
+    btnCancelar.style.cursor = 'pointer';
+    btnCancelar.onclick = () => {
+      document.body.removeChild(overlay);
+    };
+    btns.appendChild(btnCancelar);
+
+    modal.appendChild(btns);
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+  };
+
   return (
     <div style={{ padding: 24 }}>
-      <h1>Caixa</h1>
-      <div style={{ marginTop: 32, marginBottom: 24, display: 'flex', gap: 16, justifyContent: 'center', flexWrap: 'wrap' }}>
+      <h1 style={{ textAlign: 'left', marginBottom: 32, fontSize: '2.5rem', fontWeight: 'bold' }}>Controle de Caixa</h1>
+      
+      {/* Cards de Metas */}
+      <div style={{ display: 'flex', gap: 20, justifyContent: 'center', flexWrap: 'wrap', marginBottom: 40, marginTop: 32 }}>
+        {/* Card Meta Diária */}
+        <div style={{ 
+          background: '#e3f2fd', 
+          border: '2px solid #2196F3', 
+          borderRadius: 8, 
+          padding: 20, 
+          width: '280px', 
+          textAlign: 'center',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+        }}>
+          <h3 style={{ color: '#2196F3', marginTop: 0 }}>Meta Diária</h3>
+          <p style={{ fontSize: 28, fontWeight: 'bold', color: '#2196F3', margin: '10px 0' }}>
+            R$ {calcularMetaDiaria().toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          </p>
+          {metasAjustadas.diaria > 0 && (
+            <>
+              <p style={{ fontSize: 14, color: '#666', margin: '5px 0 0 0' }}>
+                Meta: R$ {metasAjustadas.diaria.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </p>
+              <div style={{ width: '100%', background: '#ddd', borderRadius: 10, height: 20, marginTop: 10, overflow: 'hidden' }}>
+                <div style={{ 
+                  width: `${Math.min((calcularMetaDiaria() / metasAjustadas.diaria) * 100, 100)}%`, 
+                  background: '#2196F3', 
+                  height: '100%', 
+                  borderRadius: 10,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#fff',
+                  fontWeight: 'bold',
+                  fontSize: 12,
+                  transition: 'width 0.3s ease'
+                }}>
+                  {Math.round((calcularMetaDiaria() / metasAjustadas.diaria) * 100)}%
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Card Meta Semanal */}
+        <div style={{ 
+          background: '#f3e5f5', 
+          border: '2px solid #9c27b0', 
+          borderRadius: 8, 
+          padding: 20, 
+          width: '280px', 
+          textAlign: 'center',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+        }}>
+          <h3 style={{ color: '#9c27b0', marginTop: 0 }}>Meta Semanal</h3>
+          <p style={{ fontSize: 28, fontWeight: 'bold', color: '#9c27b0', margin: '10px 0' }}>
+            R$ {calcularMetaSemanal().toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          </p>
+          {metasAjustadas.semanal > 0 && (
+            <>
+              <p style={{ fontSize: 14, color: '#666', margin: '5px 0 0 0' }}>
+                Meta: R$ {metasAjustadas.semanal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </p>
+              <div style={{ width: '100%', background: '#ddd', borderRadius: 10, height: 20, marginTop: 10, overflow: 'hidden' }}>
+                <div style={{ 
+                  width: `${Math.min((calcularMetaSemanal() / metasAjustadas.semanal) * 100, 100)}%`, 
+                  background: '#9c27b0', 
+                  height: '100%', 
+                  borderRadius: 10,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#fff',
+                  fontWeight: 'bold',
+                  fontSize: 12,
+                  transition: 'width 0.3s ease'
+                }}>
+                  {Math.round((calcularMetaSemanal() / metasAjustadas.semanal) * 100)}%
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Card Meta Mensal */}
+        <div style={{ 
+          background: '#e8f5e9', 
+          border: '2px solid #4caf50', 
+          borderRadius: 8, 
+          padding: 20, 
+          width: '280px', 
+          textAlign: 'center',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+        }}>
+          <h3 style={{ color: '#4caf50', marginTop: 0 }}>Meta Mensal</h3>
+          <p style={{ fontSize: 28, fontWeight: 'bold', color: '#4caf50', margin: '10px 0' }}>
+            R$ {calcularMetaMensal().toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          </p>
+          {metasAjustadas.mensal > 0 && (
+            <>
+              <p style={{ fontSize: 14, color: '#666', margin: '5px 0 0 0' }}>
+                Meta: R$ {metasAjustadas.mensal.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              </p>
+              <div style={{ width: '100%', background: '#ddd', borderRadius: 10, height: 20, marginTop: 10, overflow: 'hidden' }}>
+                <div style={{ 
+                  width: `${Math.min((calcularMetaMensal() / metasAjustadas.mensal) * 100, 100)}%`, 
+                  background: '#4caf50', 
+                  height: '100%', 
+                  borderRadius: 10,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#fff',
+                  fontWeight: 'bold',
+                  fontSize: 12,
+                  transition: 'width 0.3s ease'
+                }}>
+                  {Math.round((calcularMetaMensal() / metasAjustadas.mensal) * 100)}%
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Botões de Ação */}
+      <div style={{ 
+        background: '#fff', 
+        border: '2px solid #ddd', 
+        borderRadius: 8, 
+        padding: 24, 
+        marginBottom: 24,
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+      }}>
+        <h2 style={{ marginTop: 0, marginBottom: 8, fontSize: '1.5rem', fontWeight: 'bold' }}>Movimentações</h2>
+        <p style={{ marginTop: 0, marginBottom: 20, color: '#666', fontSize: '1rem' }}>Registre suas entradas e saídas de caixa.</p>
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
         <button
           style={{ padding: '12px 32px', fontSize: 18, background: '#4caf50', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
           onClick={() => setMostrarFormulario('entrada')}
@@ -373,10 +807,15 @@ const Caixa: React.FC = () => {
         >
           Saída
         </button>
+        <button
+          style={{ padding: '12px 32px', fontSize: 18, background: '#2196F3', color: '#fff', border: 'none', borderRadius: 4, cursor: 'pointer' }}
+          onClick={abrirModalAjusteMetas}
+        >
+          Ajustar Metas
+        </button>
+        </div>
       </div>
 
-
-      {/* Listas e totais */}
       <React.Fragment>
         {entradas.length > 0 && (
           <div style={{ marginTop: 40 }}>

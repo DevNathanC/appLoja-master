@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './Clientes.css';
 
 type Cliente = {
+  numero: number;
   nome: string;
   telefone: string;
   email: string;
@@ -19,6 +20,7 @@ type Entrada = {
 
 const Clientes: React.FC = () => {
   const [cliente, setCliente] = useState<Cliente>({
+    numero: 0,
     nome: '',
     telefone: '',
     email: '',
@@ -60,15 +62,22 @@ const Clientes: React.FC = () => {
       });
       setEditandoCliente(null);
     } else {
-      // Adicionar novo cliente
+      // Adicionar novo cliente com número sequencial
+      const proximoNumero = clientes.length > 0 
+        ? Math.max(...clientes.map(c => c.numero || 0)) + 1 
+        : 1;
+      
+      const novoCliente = { ...cliente, numero: proximoNumero };
+      
       setClientes(prev => {
-        const novos = [...prev, cliente];
+        const novos = [...prev, novoCliente];
         localStorage.setItem('clientes', JSON.stringify(novos));
         return novos;
       });
     }
     
     setCliente({
+      numero: 0,
       nome: '',
       telefone: '',
       email: '',
@@ -96,6 +105,7 @@ const Clientes: React.FC = () => {
 
   const handleCancelar = () => {
     setCliente({
+      numero: 0,
       nome: '',
       telefone: '',
       email: '',
@@ -178,26 +188,6 @@ const Clientes: React.FC = () => {
                 required
               />
             </div>
-
-            <div className="form-group">
-              <label>Email</label>
-              <input
-                type="email"
-                name="email"
-                value={cliente.email}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="form-group full-width">
-              <label>Endereço</label>
-              <textarea
-                name="endereco"
-                value={cliente.endereco}
-                onChange={handleChange}
-                rows={3}
-              />
-            </div>
           </div>
 
           <div className="form-actions">
@@ -221,6 +211,7 @@ const Clientes: React.FC = () => {
             <table>
               <thead>
                 <tr>
+                  <th>Nº</th>
                   <th>Nome</th>
                   <th>Telefone</th>
                   <th>Email</th>
@@ -231,6 +222,7 @@ const Clientes: React.FC = () => {
               <tbody>
                 {clientesFiltrados.map((c, index) => (
                   <tr key={index}>
+                    <td><strong>#{c.numero || '-'}</strong></td>
                     <td>
                       <span 
                         className="nome-clicavel"
