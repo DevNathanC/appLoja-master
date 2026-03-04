@@ -489,10 +489,7 @@ const Caixa: React.FC = () => {
     const entradaHoje = entradas
       .filter(e => e.data === hoje)
       .reduce((acc, e) => acc + (parseFloat(e.valor) || 0), 0);
-    const saidaHoje = saidas
-      .filter(e => e.data === hoje)
-      .reduce((acc, e) => acc + (parseFloat(e.valor) || 0), 0);
-    return entradaHoje - saidaHoje;
+    return entradaHoje;
   };
 
   const calcularMetaSemanal = () => {
@@ -505,10 +502,7 @@ const Caixa: React.FC = () => {
     const entradaSemana = entradas
       .filter(e => e.data >= primeiroDiaSemanaStr)
       .reduce((acc, e) => acc + (parseFloat(e.valor) || 0), 0);
-    const saidaSemana = saidas
-      .filter(e => e.data >= primeiroDiaSemanaStr)
-      .reduce((acc, e) => acc + (parseFloat(e.valor) || 0), 0);
-    return entradaSemana - saidaSemana;
+    return entradaSemana;
   };
 
   const calcularMetaMensal = () => {
@@ -519,10 +513,7 @@ const Caixa: React.FC = () => {
     const entradaMes = entradas
       .filter(e => e.data.startsWith(`${anoAtual}-${mesAtual}`))
       .reduce((acc, e) => acc + (parseFloat(e.valor) || 0), 0);
-    const saidaMes = saidas
-      .filter(e => e.data.startsWith(`${anoAtual}-${mesAtual}`))
-      .reduce((acc, e) => acc + (parseFloat(e.valor) || 0), 0);
-    return entradaMes - saidaMes;
+    return entradaMes;
   };
 
   const abrirModalAjusteMetas = () => {

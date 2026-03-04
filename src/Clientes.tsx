@@ -39,6 +39,9 @@ const Clientes: React.FC = () => {
   const [clienteSelecionado, setClienteSelecionado] = useState<string | null>(null);
   const [historico, setHistorico] = useState<Entrada[]>([]);
 
+  const normalizarTexto = (valor: string) => valor.trim().toLowerCase();
+  const normalizarTelefone = (valor: string) => valor.replace(/\D/g, '');
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setCliente(prev => ({ ...prev, [name]: value }));
@@ -49,6 +52,25 @@ const Clientes: React.FC = () => {
     
     if (!cliente.nome || !cliente.telefone) {
       alert('Nome e telefone são obrigatórios!');
+      return;
+    }
+
+    const nomeNormalizado = normalizarTexto(cliente.nome);
+    const telefoneNormalizado = normalizarTelefone(cliente.telefone);
+
+    const clienteDuplicado = clientes.find((item, index) => {
+      if (editandoCliente !== null && index === editandoCliente) {
+        return false;
+      }
+
+      const mesmoNome = normalizarTexto(item.nome) === nomeNormalizado;
+      const mesmoTelefone = normalizarTelefone(item.telefone) === telefoneNormalizado;
+
+      return mesmoNome || mesmoTelefone;
+    });
+
+    if (clienteDuplicado) {
+      alert('Este cliente já possui cadastro (nome ou telefone já existente).');
       return;
     }
 
